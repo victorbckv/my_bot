@@ -1,12 +1,16 @@
-import os
-from flask import Flask, request
 import telebot
 from telebot import types
+from flask import Flask, request
 
-# Переменные среды
-TOKEN = os.environ["TOKEN"]
-VIDEO_ID = os.environ["FILE_ID"]
-GROUP_LINK = os.environ["GROUP_LINK"]
+# -------------------------------
+# Вставь сюда свои данные
+# -------------------------------
+TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"  # токен твоего бота
+VIDEO_ID = "BAACAgUAAxkBAAIBbmkBsRPJsuENuJzxe38VTqAROoc5AALEGAACWSUQVPEi6bmpcyh1NgQ"  # file_id видео
+GROUP_LINK = "https://t.me/tribute/app?startapp=svnh"
+WEBHOOK_URL = "https://my-bot2-iw21.onrender.com/bot"  # для Render
+PORT = 10000
+# -------------------------------
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
@@ -25,7 +29,7 @@ def send_video(message):
         reply_markup=markup
     )
 
-# --- Webhook route ---
+# --- Webhook route (для Render) ---
 @app.route(f"/bot", methods=['POST'])
 def webhook():
     json_data = request.get_json()
@@ -38,14 +42,10 @@ def webhook():
 def index():
     return "Bot is running!", 200
 
-# --- Set webhook when service starts ---
-@app.before_first_request
-def setup_webhook():
-    url = os.environ["WEBHOOK_URL"]  # например: https://my-bot2-iw21.onrender.com/bot
-    bot.remove_webhook()
-    bot.set_webhook(url=url)
+# --- Устанавливаем webhook прямо перед запуском Flask ---
+bot.remove_webhook()
+bot.set_webhook(url=WEBHOOK_URL)
 
-# --- Run Flask ---
+# --- Запуск Flask ---
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=PORT)
