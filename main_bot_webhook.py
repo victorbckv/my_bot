@@ -1,9 +1,8 @@
 from flask import Flask, request
 import telebot
 import os
-import json
 
-# === Настройки из переменных окружения ===
+# === Переменные окружения ===
 TOKEN = os.environ.get("TOKEN")
 VIDEO_FILE_ID = os.environ.get("VIDEO_FILE_ID")
 GROUP_LINK = os.environ.get("GROUP_LINK")
@@ -17,22 +16,24 @@ bot.remove_webhook()
 bot.set_webhook(url=WEBHOOK_URL)
 print(f"Webhook установлен: {WEBHOOK_URL}")
 
-# === Обработка POST-запросов от Telegram ===
+# === Обработка POST от Telegram ===
 @app.route("/bot", methods=["POST"])
 def webhook():
     try:
         json_string = request.get_data().decode("utf-8")
-        print("Получен апдейт от Telegram:", json_string)  # логируем всё, что приходит
+        print("✅ Получен апдейт от Telegram:", json_string)
         update = telebot.types.Update.de_json(json_string)
         bot.process_new_updates([update])
     except Exception as e:
-        print(f"Ошибка при обработке апдейта: {e}")
+        print(f"❌ Ошибка при обработке апдейта: {e}")
     return "OK", 200
 
-# === Обработка команды /start ===
+# === Команда /start ===
 @bot.message_handler(commands=["start"])
 def start(message):
     try:
+        print(f"⚡ Получен /start от пользователя: {message.chat.id}")
+
         markup = telebot.types.InlineKeyboardMarkup()
         btn = telebot.types.InlineKeyboardButton("🎧 Войти в студию", url=GROUP_LINK)
         markup.add(btn)
@@ -43,11 +44,20 @@ def start(message):
             caption="Привет! 👋 Добро пожаловать в студию 🎬\nНажми кнопку ниже, чтобы войти 👇",
             reply_markup=markup
         )
-        print(f"Отправлено видео пользователю: {message.chat.id}")
-    except Exception as e:
-        print(f"Ошибка при отправке видео: {e}")
+        print(f"✅ Видео отправлено пользователю: {message.chat.id}")
 
-# === Проверка, что сервер жив ===
+    except Exception as e:
+        print(f"❌ Ошибка при отправке видео: {e}")
+
+# === Логирование всех остальных сообщений ===
+@bot.message_handler(func=lambda message: True)
+def log_all_messages(message):
+    try:
+        print(f"💬 Получено сообщение от {message.chat.id}: {message.text}")
+    except Exception as e:
+        print(f"❌ Ошибка при логировании сообщения: {e}")
+
+# === Проверка сервера ===
 @app.route("/", methods=["GET"])
 def index():
     return "Бот работает через Render!", 200
