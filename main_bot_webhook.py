@@ -1,43 +1,50 @@
-import os
-import telebot
 from flask import Flask, request
+import telebot
+import os
 
-# Загружаем переменные среды
+# Токен из переменных окружения
 TOKEN = os.environ.get("TOKEN")
-VIDEO_ID = os.environ.get("FILE_ID")
+bot = telebot.TeleBot(TOKEN)
+
+# Твой file_id и ссылка
+VIDEO_FILE_ID = os.environ.get("VIDEO_FILE_ID")
 GROUP_LINK = os.environ.get("GROUP_LINK")
 
-bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-@app.route('/bot', methods=['POST'])
+# Устанавливаем webhook при запуске
+WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+bot.remove_webhook()
+bot.set_webhook(url=WEBHOOK_URL)
+print(f"Webhook установлен: {WEBHOOK_URL}")
+
+# Обработка запроса от Telegram
+@app.route("/bot", methods=["POST"])
 def webhook():
-    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
-    bot.process_new_updates([update])
-    return "ok", 200
+    update = request.get_json(force=True)
+    bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
 
-@bot.message_handler(commands=['start'])
-def start(message):
+# Когда пользователь нажимает /start
+@bot.message_handler(commands=["start"])
+def send_welcome(message):
+    # Создаём кнопку
     markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("🎬 Смотреть видео", callback_data="watch"))
-    bot.send_message(message.chat.id, "Привет! 👋 Нажми, чтобы посмотреть видео:", reply_markup=markup)
+    btn = telebot.types.InlineKeyboardButton("🎧 Войти в студию", url=GROUP_LINK)
+    markup.add(btn)
 
-@bot.callback_query_handler(func=lambda call: call.data == "watch")
-def send_video(call):
-    markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton("💬 Перейти в группу", url=GROUP_LINK))
-    bot.send_video(call.message.chat.id, VIDEO_ID, caption="Видео доступно прямо здесь 👇", reply_markup=markup)
+    # Отправляем видео и сообщение
+    bot.send_video(
+        message.chat.id,
+        VIDEO_FILE_ID,
+        caption="Добро пожаловать в студию 🎬\n\nНажми кнопку ниже, чтобы войти 👇",
+        reply_markup=markup
+    )
 
-@app.route('/')
-def home():
-    return "✅ Bot is running!", 200
+@app.route("/", methods=["GET"])
+def index():
+    return "Бот запущен и работает через Render!", 200
 
 if __name__ == "__main__":
-    # Настраиваем webhook при запуске
-    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
-    bot.remove_webhook()
-    if WEBHOOK_URL:
-        bot.set_webhook(url=WEBHOOK_URL)
-        print(f"Webhook установлен: {WEBHOOK_URL}")
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
