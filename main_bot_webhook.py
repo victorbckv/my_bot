@@ -1,7 +1,6 @@
 from flask import Flask, request
 import telebot
 import os
-import json
 
 TOKEN = os.environ.get("TOKEN")
 VIDEO_FILE_ID = os.environ.get("VIDEO_FILE_ID")
@@ -16,34 +15,30 @@ bot.remove_webhook()
 bot.set_webhook(url=WEBHOOK_URL)
 print(f"Webhook установлен: {WEBHOOK_URL}")
 
+# Обработка POST-запросов от Telegram
 @app.route("/bot", methods=["POST"])
 def webhook():
-    # Принимаем апдейты от Telegram
-    try:
-        update_data = request.stream.read().decode("utf-8")
-        update_dict = json.loads(update_data)
-        update = telebot.types.Update.de_json(update_dict)
-        bot.process_new_updates([update])
-    except Exception as e:
-        print(f"Ошибка при обработке апдейта: {e}")
+    json_string = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
     return "OK", 200
 
+# /start сразу отправляет видео + кнопку
 @bot.message_handler(commands=["start"])
-def send_welcome(message):
-    try:
-        markup = telebot.types.InlineKeyboardMarkup()
-        btn = telebot.types.InlineKeyboardButton("🎧 Войти в студию", url=GROUP_LINK)
-        markup.add(btn)
+def start(message):
+    markup = telebot.types.InlineKeyboardMarkup()
+    btn = telebot.types.InlineKeyboardButton("🎧 Войти в студию", url=GROUP_LINK)
+    markup.add(btn)
+    
+    bot.send_video(
+        chat_id=message.chat.id,
+        data=VIDEO_FILE_ID,
+        caption="Привет! 👋 Добро пожаловать в студию 🎬\nНажми кнопку ниже, чтобы войти 👇",
+        reply_markup=markup
+    )
+    print(f"Отправлено видео пользователю: {message.chat.id}")
 
-        bot.send_video(
-            message.chat.id,
-            VIDEO_FILE_ID,
-            caption="Привет! 👋 Добро пожаловать в студию 🎬\n\nНажми кнопку ниже, чтобы войти 👇",
-            reply_markup=markup
-        )
-    except Exception as e:
-        print(f"Ошибка при отправке видео: {e}")
-
+# Для проверки, что сервер жив
 @app.route("/", methods=["GET"])
 def index():
     return "Бот работает через Render!", 200
