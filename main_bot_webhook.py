@@ -1,6 +1,7 @@
 import telebot
 from flask import Flask, request
 import os
+import json
 
 TOKEN = os.environ.get("TOKEN", "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM")
 bot = telebot.TeleBot(TOKEN)
@@ -18,8 +19,8 @@ print(f"Webhook установлен: {WEBHOOK_URL}")
 @app.route("/bot", methods=["POST"])
 def bot_webhook():
     json_str = request.get_data().decode("UTF-8")
-    update = telebot.types.Update.de_json(json_str)
-    print(f"📩 Получено сообщение: {update.to_dict()}")  # <-- добавим лог
+    print(f"📩 Сырой JSON от Telegram: {json_str}")  # <-- лог без .to_dict()
+    update = telebot.types.Update.de_json(json.loads(json_str))
     bot.process_new_updates([update])
     return "OK", 200
 
