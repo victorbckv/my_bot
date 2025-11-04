@@ -9,24 +9,30 @@ GROUP_LINK = "https://t.me/tribute/app?startapp=svnh"
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# === Обработка команды /start ===
+# === Команда /start ===
 @bot.message_handler(commands=['start'])
 def start_message(message):
     chat_id = message.chat.id
-    bot.send_message(chat_id, "🎬 Привет! Сейчас отправлю тебе видео...")
 
-    # Отправляем видео
-    try:
-        bot.send_video(chat_id, VIDEO_FILE_ID, caption="✨ Смотри видео и потом заходи в студию!")
-    except Exception as e:
-        bot.send_message(chat_id, f"⚠️ Ошибка при отправке видео: {e}")
+    # Отправляем видео с подписью
+    bot.send_video(
+        chat_id,
+        VIDEO_FILE_ID,
+        caption="🎥 Посмотри это короткое 4-минутное видео, чтобы понять, что тебя ждёт в студии!"
+    )
 
-    # Добавляем кнопку
+    # Кнопка "Войти в студию"
     markup = telebot.types.InlineKeyboardMarkup()
-    btn = telebot.types.InlineKeyboardButton("🎧 Войти в студию", url=GROUP_LINK)
+    btn = telebot.types.InlineKeyboardButton("🧘‍♂️ Войти в студию", url=GROUP_LINK)
     markup.add(btn)
+    bot.send_message(chat_id, " ", reply_markup=markup)  # пустое сообщение, только кнопка
 
-    bot.send_message(chat_id, "👇 Нажми, чтобы войти:", reply_markup=markup)
+
+# === Любое другое сообщение ===
+@bot.message_handler(func=lambda msg: True)
+def echo_message(message):
+    chat_id = message.chat.id
+    bot.send_message(chat_id, "Чтобы начать, нажми /start 🔹")
 
 
 # === Webhook ===
