@@ -1,4 +1,5 @@
 import os
+import time
 from flask import Flask, request
 import telebot
 
@@ -14,18 +15,21 @@ app = Flask(__name__)
 def start_message(message):
     chat_id = message.chat.id
 
-    # Отправляем видео с подписью
+    # 1️⃣ Отправляем видео с подписью
     bot.send_video(
         chat_id,
         VIDEO_FILE_ID,
         caption="🎥 Посмотри это короткое 4-минутное видео, чтобы понять, что тебя ждёт в студии!"
     )
 
-    # Кнопка "Войти в студию"
+    # 2️⃣ Небольшая пауза, чтобы второе сообщение не потерялось
+    time.sleep(0.5)
+
+    # 3️⃣ Кнопка "Войти в студию"
     markup = telebot.types.InlineKeyboardMarkup()
     btn = telebot.types.InlineKeyboardButton("🧘‍♂️ Войти в студию", url=GROUP_LINK)
     markup.add(btn)
-    bot.send_message(chat_id, " ", reply_markup=markup)  # пустое сообщение, только кнопка
+    bot.send_message(chat_id, "🧘‍♂️ Войти в студию", reply_markup=markup)
 
 
 # === Любое другое сообщение ===
