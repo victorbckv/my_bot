@@ -1,4 +1,43 @@
+from flask import Flask, request
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 import os
+
+TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
+GROUP_LINK = "https://t.me/tribute/app?startapp=svnh"
+VIDEO_FILE_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
+
+bot = Bot(token=TOKEN)
+app = Flask(__name__)
+
+@app.route("/bot", methods=["POST"])
+def bot_webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+
+    if update.message:
+        chat_id = update.message.chat.id
+
+        # Отправляем видео с описанием
+        bot.send_video(
+            chat_id=chat_id,
+            video=VIDEO_FILE_ID,
+            caption="🎥 Посмотри это короткое 4х минутное видео чтобы понять что тебя ждёт в студии!"
+        )
+
+        # Отправляем второе сообщение с кнопкой
+        keyboard = InlineKeyboardMarkup(
+            [[InlineKeyboardButton("Войти в СТУДИЮ 🧘‍♂️", url=GROUP_LINK)]]
+        )
+        bot.send_message(
+            chat_id=chat_id,
+            text="Жми сюда, чтобы присоединиться 👇",
+            reply_markup=keyboard
+        )
+
+    return "ok"
+
+if __name__ == "__main__":
+    PORT = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=PORT)import os
 from flask import Flask, request
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import TelegramError
