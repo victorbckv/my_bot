@@ -1,4 +1,91 @@
 import os
+from flask import Flask, request
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.error import TelegramError
+
+app = Flask(__name__)
+
+# ---------------------------------------
+# 🔧 Настройки
+# ---------------------------------------
+
+TOKEN = os.getenv("TELEGRAM_TOKEN", "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM")
+GROUP_LINK = os.getenv("GROUP_LINK", "https://t.me/+y6d1Q11HWGg5OWI6")
+VIDEO_FILE_ID = os.getenv(
+    "VIDEO_FILE_ID",
+    "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
+)
+
+bot = Bot(TOKEN)
+
+
+# ---------------------------------------
+# 📌 Webhook endpoint
+# ---------------------------------------
+@app.route(f"/bot", methods=["POST"])
+def bot_webhook():
+    update = Update.de_json(request.get_json(force=True), bot)
+
+    try:
+        if update.message:
+            handle_message(update.message)
+
+        if update.callback_query:
+            handle_callback(update.callback_query)
+
+    except TelegramError as e:
+        print("Ошибка Telegram:", e)
+    except Exception as e:
+        print("Ошибка сервера:", e)
+
+    return "OK", 200
+
+
+# ---------------------------------------
+# 📨 Обработка входящих сообщений
+# ---------------------------------------
+def handle_message(message):
+    chat_id = message.chat_id
+
+    # Сразу отправляем видео
+    bot.send_video(
+        chat_id=chat_id,
+        video=VIDEO_FILE_ID,
+        caption="🎥 Посмотри короткое 4-минутное видео, чтобы понять, что тебя ждёт в студии!"
+    )
+
+    # Следом отправляем кнопку "Войти в студию"
+    keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🧘‍♂️ Войти в СТУДИЮ", url=GROUP_LINK)]]
+    )
+
+    bot.send_message(
+        chat_id=chat_id,
+        text="Готов начать? Жми ниже 👇",
+        reply_markup=keyboard
+    )
+
+
+# ---------------------------------------
+# 🔘 Обработка callback-кнопок (если будут)
+# ---------------------------------------
+def handle_callback(callback):
+    callback.answer()
+
+
+# ---------------------------------------
+# 🚀 Проверка
+# ---------------------------------------
+@app.route("/", methods=["GET"])
+def home():
+    return "Bot is running!", 200
+
+
+# ---------------------------------------
+# ▶️ Запуск
+# ---------------------------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)import os
 import time
 from flask import Flask, request
 import telebot
