@@ -37,7 +37,7 @@ def bot_webhook():
 
 if __name__ == "__main__":
     PORT = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=PORT)import os
+    app.run(host="0.0.0.0", port=PORT)
 from flask import Flask, request
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.error import TelegramError
