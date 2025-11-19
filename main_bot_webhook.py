@@ -1,14 +1,17 @@
 from flask import Flask, request
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Application, ContextTypes, CommandHandler
 import os
+import asyncio
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
 VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
 
 app = Flask(__name__)
-bot = Bot(TOKEN)
+application = Application.builder().token(TOKEN).build()
 
-def send_welcome(chat_id):
+async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
     text = (
         "Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂\n\n"
         "СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.\n"
@@ -18,21 +21,16 @@ def send_welcome(chat_id):
     keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("Вступить в СТУДИЮ", url="https://t.me/tribute/app?startapp=svnh")]]
     )
-    # Синхронные вызовы, без await
-    bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
-    bot.send_video(chat_id=chat_id, video=VIDEO_ID)
+    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+    await context.bot.send_video(chat_id=chat_id, video=VIDEO_ID)
+
+application.add_handler(CommandHandler("start", send_welcome))
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json(force=True)
-    chat_id = None
-    if "message" in data:
-        chat_id = data["message"]["chat"]["id"]
-    elif "callback_query" in data:
-        chat_id = data["callback_query"]["message"]["chat"]["id"]
-
-    if chat_id:
-        send_welcome(chat_id)
+    update = Update.de_json(data, application.bot)
+    asyncio.run(application.process_update(update))  # <-- безопасно здесь, т.к. один раз
     return "OK"
 
 @app.route("/", methods=["GET", "HEAD"])
