@@ -2,13 +2,13 @@ from flask import Flask, request
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import Application, ContextTypes, CommandHandler
 import os
-import asyncio
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
-VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
+VIDEO_ID = "ВАШ_ВИДЕО_ID_СЮДА"
 
 app = Flask(__name__)
 application = Application.builder().token(TOKEN).build()
+application.initialize()  # важно для синхронного вебхука
 
 async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -30,7 +30,7 @@ application.add_handler(CommandHandler("start", send_welcome))
 def webhook():
     data = request.get_json(force=True)
     update = Update.de_json(data, application.bot)
-    asyncio.run(application.process_update(update))  # <-- безопасно здесь, т.к. один раз
+    application.update_queue.put_nowait(update)
     return "OK"
 
 @app.route("/", methods=["GET", "HEAD"])
