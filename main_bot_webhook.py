@@ -1,34 +1,63 @@
 from flask import Flask, request
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
+import requests
+import os
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
-VIDEO_ID = "ВАШ_ВИДЕО_ID"  # <-- вставь сюда ID видео
-TEXT = """Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂
-
-СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.
-В ней удобная навигация по контенту и великолепное качество самих видео.
-Все тренировки содержат в себе подробные инструкции и пояснения, а названия асан отмечены субтитрами."""
-
-# Кнопка
-keyboard = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("Вступить в СТУДИЮ", url="https://t.me/tribute/app?startapp=svnh")]]
-)
+VIDEO_ID = "BAACAgIAAxkBAAIBAWcoFBD6j8_7cYV4I5-hxvOz0wABHQACV-k4SvgwhMsuHizJxkUEAE"  # <-- твой видео айди
+TG_API = f"https://api.telegram.org/bot{TOKEN}"
 
 app = Flask(__name__)
-bot = Bot(TOKEN)
+
+def send_message(chat_id, text, reply_markup=None):
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "reply_markup": reply_markup
+    }
+    requests.post(f"{TG_API}/sendMessage", json=payload)
+
+def send_video(chat_id, video):
+    payload = {
+        "chat_id": chat_id,
+        "video": video
+    }
+    requests.post(f"{TG_API}/sendVideo", json=payload)
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    chat_id = update.message.chat.id
+    update = request.json
 
-    # Отправляем сообщение с кнопкой
-    bot.send_message(chat_id=chat_id, text=TEXT, reply_markup=keyboard)
+    if "message" not in update:
+        return "ok"
 
-    # Отправляем видео
-    bot.send_video(chat_id=chat_id, video=VIDEO_ID)
-    return "OK"
+    chat_id = update["message"]["chat"]["id"]
+
+    text = (
+        "Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое "
+        "СТУДИЯ и что от неё ждать 🙂\n\n"
+        "СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.\n"
+        "В ней удобная навигация по контенту и великолепное качество самих видео.\n"
+        "Все тренировки содержат в себе подробные инструкции и пояснения, а названия "
+        "асан отмечены субтитрами."
+    )
+
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "Вступить в СТУДИЮ", "url": "https://t.me/tribute/app?startapp=svnh"}
+            ]
+        ]
+    }
+
+    send_message(chat_id, text, reply_markup=keyboard)
+    send_video(chat_id, VIDEO_ID)
+
+    return "ok"
+
+@app.route("/")
+def home():
+    return "ok"
 
 if __name__ == "__main__":
-    PORT = 10000
+    PORT = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=PORT)
