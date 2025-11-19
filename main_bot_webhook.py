@@ -1,6 +1,7 @@
 from flask import Flask, request
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+import asyncio
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
 VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
@@ -8,7 +9,7 @@ VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6
 app = Flask(__name__)
 bot = Bot(TOKEN)
 
-# Функция обработки команды /start
+# Обработчик команды /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     text = (
@@ -25,15 +26,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 application = ApplicationBuilder().token(TOKEN).build()
 application.add_handler(CommandHandler("start", start))
 
+# Webhook route
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    from telegram import Update
-    import asyncio
-
     update = Update.de_json(request.get_json(force=True), bot)
-    asyncio.run(application.update_queue.put(update))
+    asyncio.run(application.process_update(update))  # <-- обработка update напрямую
     return "OK"
 
+# Index для uptime check
 @app.route("/", methods=["GET", "HEAD"])
 def index():
     return "Bot is running", 200
