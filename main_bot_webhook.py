@@ -1,47 +1,37 @@
 from flask import Flask, request
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Application, ContextTypes, CommandHandler
-import asyncio
-import os
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
-VIDEO_ID = "ВАШ_ВИДЕО_ID_СЮДА"
+VIDEO_ID = "BAACAgIAAxkBAAECc-VgkQ1u7UJh8sMIpzYjS5Tzqn-9QAACZAADVp29Ck-dNyWZqgVZKQQ"  # Вставлен твой видео ID
+bot = Bot(TOKEN)
 
 app = Flask(__name__)
 
-# Создаем приложение бота и инициализируем
-application = Application.builder().token(TOKEN).build()
-application.initialize()
+# Текст и кнопка
+TEXT = """Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂
 
-async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    text = (
-        "Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂\n\n"
-        "СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.\n"
-        "В ней удобная навигация по контенту и великолепное качество самих видео.\n"
-        "Все тренировки содержат в себе подробные инструкции и пояснения, а названия асан отмечены субтитрами."
-    )
-    keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("Вступить в СТУДИЮ", url="https://t.me/tribute/app?startapp=svnh")]]
-    )
-    await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
-    await context.bot.send_video(chat_id=chat_id, video=VIDEO_ID)
+СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.
+В ней удобная навигация по контенту и великолепное качество самих видео.
+Все тренировки содержат в себе подробные инструкции и пояснения, а названия асан отмечены субтитрами.
+"""
 
-# Регистрируем обработчик команды /start
-application.add_handler(CommandHandler("start", send_welcome))
+BUTTON_TEXT = "Вступить в СТУДИЮ"
+BUTTON_URL = "https://t.me/tribute/app?startapp=svnh"
 
-@app.route("/webhook", methods=["POST"])
+keyboard = InlineKeyboardMarkup([
+    [InlineKeyboardButton(BUTTON_TEXT, url=BUTTON_URL)]
+])
+
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    data = request.get_json(force=True)
-    update = Update.de_json(data, application.bot)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(application.process_update(update))
+    update = Update.de_json(request.get_json(force=True), bot)
+    chat_id = update.message.chat.id
+
+    # Отправка сообщения и видео
+    bot.send_message(chat_id=chat_id, text=TEXT, reply_markup=keyboard)
+    bot.send_video(chat_id=chat_id, video=VIDEO_ID)
     return "OK"
 
-@app.route("/", methods=["GET", "HEAD"])
-def index():
-    return "Bot is running", 200
-
 if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 10000))
+    PORT = 10000
     app.run(host="0.0.0.0", port=PORT)
