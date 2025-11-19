@@ -1,6 +1,6 @@
 from flask import Flask, request
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+import os
 import asyncio
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
@@ -9,9 +9,7 @@ VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6
 app = Flask(__name__)
 bot = Bot(TOKEN)
 
-# Обработчик команды /start
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
+async def send_welcome(chat_id):
     text = (
         "Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂\n\n"
         "СТУДИЯ это онлайн платформа для практики йоги на базе ТЕЛЕГРАМ.\n"
@@ -22,23 +20,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
     await bot.send_video(chat_id=chat_id, video=VIDEO_ID)
 
-# Создаём приложение telegram
-application = ApplicationBuilder().token(TOKEN).build()
-application.add_handler(CommandHandler("start", start))
-
-# Webhook route
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), bot)
-    asyncio.run(application.process_update(update))  # <-- обработка update напрямую
+    data = request.get_json(force=True)
+    chat_id = None
+    if "message" in data:
+        chat_id = data["message"]["chat"]["id"]
+    elif "callback_query" in data:
+        chat_id = data["callback_query"]["message"]["chat"]["id"]
+
+    if chat_id:
+        asyncio.run(send_welcome(chat_id))
     return "OK"
 
-# Index для uptime check
 @app.route("/", methods=["GET", "HEAD"])
 def index():
     return "Bot is running", 200
 
 if __name__ == "__main__":
-    import os
     PORT = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=PORT)
