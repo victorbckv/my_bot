@@ -1,15 +1,15 @@
 from flask import Flask, request
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Dispatcher, CallbackContext, CommandHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
 VIDEO_ID = "BAACAgUAAxkBAAIB2Gkcf0DOXbRrzMHBCZKu7KE7mS6hAAIWHwACGh_gVGkJijD4_dr6NgQ"
 
 app = Flask(__name__)
 bot = Bot(TOKEN)
-dispatcher = Dispatcher(bot, None, workers=0)
 
-def start(update: Update, context: CallbackContext):
+# Функция обработки команды /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     text = (
         "Привет! Посмотри это 3х минутное ознакомительное видео, чтобы узнать что такое СТУДИЯ и что от неё ждать 🙂\n\n"
@@ -18,15 +18,20 @@ def start(update: Update, context: CallbackContext):
         "Все тренировки содержат в себе подробные инструкции и пояснения, а названия асан отмечены субтитрами."
     )
     keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("Вступить в СТУДИЮ", url="https://t.me/tribute/app?startapp=svnh")]])
-    bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
-    bot.send_video(chat_id=chat_id, video=VIDEO_ID)
+    await bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
+    await bot.send_video(chat_id=chat_id, video=VIDEO_ID)
 
-dispatcher.add_handler(CommandHandler("start", start))
+# Создаём приложение telegram
+application = ApplicationBuilder().token(TOKEN).build()
+application.add_handler(CommandHandler("start", start))
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
+    from telegram import Update
+    import asyncio
+
     update = Update.de_json(request.get_json(force=True), bot)
-    dispatcher.process_update(update)
+    asyncio.run(application.update_queue.put(update))
     return "OK"
 
 @app.route("/", methods=["GET", "HEAD"])
