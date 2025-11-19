@@ -8,9 +8,12 @@ TOKEN = "8323792625:AAE-Z7cgncANZOQUlRBCx_qpqkBmJl8GuWM"
 VIDEO_ID = "ВАШ_ВИДЕО_ID_СЮДА"
 
 app = Flask(__name__)
+
+# Создаем приложение бота и инициализируем
 application = Application.builder().token(TOKEN).build()
 application.initialize()
 
+# Асинхронная функция для обработки /start
 async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     text = (
@@ -25,19 +28,20 @@ async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard)
     await context.bot.send_video(chat_id=chat_id, video=VIDEO_ID)
 
+# Регистрируем обработчик команды /start
 application.add_handler(CommandHandler("start", send_welcome))
 
+# Вебхук endpoint
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    try:
-        data = request.get_json(force=True)
-        update = Update.de_json(data, application.bot)
-        asyncio.create_task(application.process_update(update))
-        return "OK"
-    except Exception as e:
-        print("Webhook error:", e)
-        return "Error", 500
+    data = request.get_json(force=True)
+    update = Update.de_json(data, application.bot)
+    # Безопасный способ: запускаем через run_until_complete
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(application.process_update(update))
+    return "OK"
 
+# Проверка сервиса
 @app.route("/", methods=["GET", "HEAD"])
 def index():
     return "Bot is running", 200
